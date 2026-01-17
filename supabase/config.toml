@@ -24,3 +24,6 @@ verify_jwt = false
 
 [functions.search-businesses]
 verify_jwt = false
+
+[functions.generate-cold-script]
+verify_jwt = false

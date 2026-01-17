@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -22,9 +23,22 @@ export default function Auth() {
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!loading && user) {
-      navigate('/dashboard');
-    }
+    const checkOnboarding = async () => {
+      if (!loading && user) {
+        const { data } = await supabase
+          .from('profiles')
+          .select('onboarding_completed')
+          .eq('user_id', user.id)
+          .single();
+
+        if (data?.onboarding_completed) {
+          navigate('/dashboard');
+        } else {
+          navigate('/onboarding');
+        }
+      }
+    };
+    checkOnboarding();
   }, [user, loading, navigate]);
 
   const validateInputs = () => {
