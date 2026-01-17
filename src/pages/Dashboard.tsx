@@ -8,7 +8,7 @@ import { RecentSearches } from '@/components/RecentSearches';
 import { LeadCard } from '@/components/LeadCard';
 import { LeadFilters } from '@/components/LeadFilters';
 import { ExportButton } from '@/components/ExportButton';
-import { generateMockBusinesses } from '@/lib/mockData';
+import { generateMockBusinesses, MockBusiness } from '@/lib/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Target, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -146,16 +146,39 @@ export default function Dashboard() {
       if (searchError) throw searchError;
 
       setProgress(10);
-      setProgressText('Generating mock businesses...');
+      setProgressText('Searching for real businesses via Firecrawl...');
 
-      // Generate mock businesses (will be replaced with real API)
-      const mockBusinesses = generateMockBusinesses(businessType, location, 10);
+      // Try to fetch real businesses using Firecrawl
+      let businesses: MockBusiness[] = [];
+      let useRealData = false;
+
+      try {
+        const searchResponse = await supabase.functions.invoke('search-businesses', {
+          body: {
+            businessType,
+            location,
+            limit: 10
+          }
+        });
+
+        if (searchResponse.data?.success && searchResponse.data?.businesses?.length > 0) {
+          businesses = searchResponse.data.businesses;
+          useRealData = true;
+          console.log('Using real data from Firecrawl:', businesses.length, 'businesses');
+        } else {
+          console.log('Firecrawl returned no results, falling back to mock data');
+          businesses = generateMockBusinesses(businessType, location, 10);
+        }
+      } catch (firecrawlError) {
+        console.error('Firecrawl error, falling back to mock data:', firecrawlError);
+        businesses = generateMockBusinesses(businessType, location, 10);
+      }
 
       setProgress(20);
-      setProgressText('Saving businesses to database...');
+      setProgressText(useRealData ? 'Saving real businesses to database...' : 'Saving businesses to database...');
 
       // Insert businesses
-      const businessInserts = mockBusinesses.map(b => ({
+      const businessInserts = businesses.map(b => ({
         search_id: searchData.id,
         name: b.name,
         address: b.address,
@@ -176,16 +199,18 @@ export default function Dashboard() {
       setProgressText('Saving reviews...');
 
       // Insert reviews for each business
-      const reviewInserts: { business_id: string; text: string; rating: number; author_name: string }[] = [];
-      mockBusinesses.forEach((mock, index) => {
-        mock.reviews.forEach(review => {
-          reviewInserts.push({
-            business_id: businessData[index].id,
-            text: review.text,
-            rating: review.rating,
-            author_name: review.authorName
+      const reviewInserts: { business_id: string; text: string; rating: number | null; author_name: string | null }[] = [];
+      businesses.forEach((mock, index) => {
+        if (mock.reviews && businessData[index]) {
+          mock.reviews.forEach(review => {
+            reviewInserts.push({
+              business_id: businessData[index].id,
+              text: review.text,
+              rating: review.rating,
+              author_name: review.authorName
+            });
           });
-        });
+        }
       });
 
       if (reviewInserts.length > 0) {
@@ -201,14 +226,14 @@ export default function Dashboard() {
 
       // Analyze each business with AI
       const analysisPromises = businessData.map(async (business, index) => {
-        const mockBusiness = mockBusinesses[index];
+        const mockBusiness = businesses[index];
         
         try {
           const response = await supabase.functions.invoke('analyze-reviews', {
             body: {
               business: {
                 name: business.name,
-                reviews: mockBusiness.reviews
+                reviews: mockBusiness?.reviews || []
               }
             }
           });
