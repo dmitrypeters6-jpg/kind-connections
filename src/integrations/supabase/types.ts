@@ -99,25 +99,34 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
+          credits: number
           email: string | null
           full_name: string | null
           id: string
+          onboarding_completed: boolean
+          services: string[] | null
           updated_at: string
           user_id: string
         }
         Insert: {
           created_at?: string
+          credits?: number
           email?: string | null
           full_name?: string | null
           id?: string
+          onboarding_completed?: boolean
+          services?: string[] | null
           updated_at?: string
           user_id: string
         }
         Update: {
           created_at?: string
+          credits?: number
           email?: string | null
           full_name?: string | null
           id?: string
+          onboarding_completed?: boolean
+          services?: string[] | null
           updated_at?: string
           user_id?: string
         }
@@ -151,6 +160,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "reviews_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      saved_leads: {
+        Row: {
+          business_id: string
+          cold_call_script: string | null
+          contacted_at: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          cold_call_script?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          cold_call_script?: string | null
+          contacted_at?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_leads_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
