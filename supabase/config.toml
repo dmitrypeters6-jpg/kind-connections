@@ -21,3 +21,6 @@ site_url = "http://localhost:3000"
 
 [functions.analyze-reviews]
 verify_jwt = false
+
+[functions.search-businesses]
+verify_jwt = false
